@@ -1,110 +1,73 @@
-// Pretty much all the code here came from Google's "quickstart.js" example. 
+// This module handles Google authorization. Much of it is based on Google's
+// "quickstart.js" example, but rewritten with promises and async/await.
 
 const fs = require('fs');
 const readline = require('readline');
 const googleAuth = require('google-auth-library');
+const denodeify = require('denodeify');
+const readFile = denodeify(fs.readFile);
+const writeFile = denodeify(fs.writeFile);
+
+const GOOGLE_AUTH_TOKEN_FILE = process.env.GOOGLE_AUTH_TOKEN_FILE;
+if (!GOOGLE_AUTH_TOKEN_FILE) {
+  throw new Error('Location of Google auth token file not specified.');
+}
 
 // If modifying these scopes, delete your previously saved credentials
 // at ~/.credentials/sheets.googleapis.com-nodejs-quickstart.json
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
-const TOKEN_DIR = (process.env.HOME || process.env.HOMEPATH ||
-    process.env.USERPROFILE) + '/.credentials/';
-const TOKEN_PATH = TOKEN_DIR + 'sheets.googleapis.com-nodejs-quickstart.json';
 
-/**
- * Create an OAuth2 client with the given credentials, and then execute the
- * given callback function.
- *
- * @param {Object} credentials The authorization client credentials.
- * @param {function} callback The callback to call with the authorized client.
- */
-function authorize(credentials, callback) {
-  const clientSecret = credentials.installed.client_secret;
-  const clientId = credentials.installed.client_id;
-  const redirectUrl = credentials.installed.redirect_uris[0];
+// Creates an OAuth2 client with credentials provided in JSON files.
+exports.authorize = async function() {
+  // Load permanent credentials.
+  const credentialsString = await readFile('client_secret.json');
+  const credentials = JSON.parse(credentialsString);
   const auth = new googleAuth();
-  const oauth2Client = new auth.OAuth2(clientId, clientSecret, redirectUrl);
+  const oauth2Client = new auth.OAuth2(
+    credentials.installed.client_id,
+    credentials.installed.client_secret,
+    credentials.installed.redirect_uris[0]
+  );
 
-  // Check if we have previously stored a token.
-  fs.readFile(TOKEN_PATH, function(err, token) {
-    if (err) {
-      getNewToken(oauth2Client, callback);
-    } else {
-      oauth2Client.credentials = JSON.parse(token);
-      callback(oauth2Client);
-    }
-  });
+  // Load the token if we have it.
+  try {
+    const token = await readFile(GOOGLE_AUTH_TOKEN_FILE);
+    oauth2Client.credentials = JSON.parse(token);
+    return oauth2Client;
+  } catch (e) {
+    await getNewToken(oauth2Client);
+  }
 }
 
-/**
- * Get and store new token after prompting for user authorization, and then
- * execute the given callback with the authorized OAuth2 client.
- *
- * @param {google.auth.OAuth2} oauth2Client The OAuth2 client to get token for.
- * @param {getEventsCallback} callback The callback to call with the authorized
- *     client.
- */
-function getNewToken(oauth2Client, callback) {
-  var authUrl = oauth2Client.generateAuthUrl({
+// Asks a question via readline and returns a promise for the answer.
+function askWithReadline(question) {
+  return new Promise((resolve, reject) => {
+    const interface = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout
+    });
+    interface.question(question, value => {
+      interface.close();
+      resolve(value);
+    });
+  })
+}
+
+// Attempts to obtain and store a new token for an OAuth2 client.
+async function getNewToken(oauth2Client) {
+  const authUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES
   });
   console.log('Authorize this app by visiting this url: ', authUrl);
-  var rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-  });
-  rl.question('Enter the code from that page here: ', function(code) {
-    rl.close();
-    oauth2Client.getToken(code, function(err, token) {
-      if (err) {
-        console.log('Error while trying to retrieve access token', err);
-        return;
-      }
-      oauth2Client.credentials = token;
-      storeToken(token);
-      callback(oauth2Client);
-    });
-  });
+  const code = await askWithReadline('Enter the code from that page here: ');
+  console.log('code', code);
+  const getToken = denodeify(oauth2Client.getToken.bind(oauth2Client));
+  const token = await getToken(code);
+  console.log('token', token);
+  oauth2Client.credentials = token;
+  // Store the token for later use.
+  await writeFile(GOOGLE_AUTH_TOKEN_FILE, JSON.stringify(token));
+  console.log('Token stored to ' + GOOGLE_AUTH_TOKEN_FILE);
+  return oauth2Client;
 }
-
-/**
- * Store token to disk be used in later program executions.
- *
- * @param {Object} token The token to store to disk.
- */
-function storeToken(token) {
-  try {
-    fs.mkdirSync(TOKEN_DIR);
-  } catch (err) {
-    if (err.code != 'EEXIST') {
-      throw err;
-    }
-  }
-  fs.writeFile(TOKEN_PATH, JSON.stringify(token));
-  console.log('Token stored to ' + TOKEN_PATH);
-}
-
-function authenticate() {
-  return new Promise(function (resolve, reject) {
-    // Load client secrets from a local file.
-    fs.readFile('client_secret.json', function processClientSecrets(err, content) {
-      if (err) {
-        console.log('Error loading client secret file: ' + err);
-        reject('Error loading client secret file: ' + err);
-      }
-      // Authorize a client with the loaded credentials, then call the
-      // Google Sheets API.
-      authorize(JSON.parse(content), resolve);
-    });
-  }).then(function(auth) {
-    console.log('so far so good', auth);
-    return auth;
-  }, function() { console.log('Oh-oh')});
-}
-
-exports.authenticate = authenticate;
-
-
-
-
