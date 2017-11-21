@@ -1,0 +1,34 @@
+{
+  "name": "unladen",
+  "version": "0.0.1",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "server": "node server.js",
+    "test": "nyc mocha lib/**/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rangle/unladen.git"
+  },
+  "author": "Rangle.io",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rangle/unladen/issues"
+  },
+  "homepage": "https://github.com/rangle/unladen#readme",
+  "dependencies": {
+    "denodeify": "^1.2.1",
+    "google-auth-library": "^0.11.0",
+    "googleapis": "^21.3.0",
+    "koa-router": "^7.2.1",
+    "koa2": "^2.0.0-alpha.7",
+    "ramda": "^0.24.1"
+  },
+  "devDependencies": {
+    "chai": "^4.1.2",
+    "mocha": "^3.5.1",
+    "nyc": "^11.2.1",
+    "sinon": "^3.2.1"
+  }
+}
