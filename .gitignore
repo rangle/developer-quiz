@@ -1,2 +1,7 @@
 server/credentials/*
 server/setenvironment.sh
+server/node_modules/*
+server/.nyc_output/*
+server/client_secret.json
+client/node_modules/*
+client/yarn.lock
