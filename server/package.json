@@ -18,9 +18,11 @@
   },
   "homepage": "https://github.com/rangle/unladen#readme",
   "dependencies": {
+    "array.prototype.findindex": "^2.0.2",
     "denodeify": "^1.2.1",
     "google-auth-library": "^0.11.0",
     "googleapis": "^21.3.0",
+    "koa-cors": "0.0.16",
     "koa-router": "^7.2.1",
     "koa2": "^2.0.0-alpha.7",
     "ramda": "^0.24.1"

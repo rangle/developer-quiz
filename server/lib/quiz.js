@@ -54,6 +54,7 @@
 
 const {update, append, get} = require('./googlesheet');
 const R = require('ramda');
+const findIndex = require('array.prototype.findindex');
 
 const OUTPUT_DOC_ID = process.env.OUTPUT_DOC_ID;
 const QUESTION_DOC_ID = process.env.QUESTION_DOC_ID;
@@ -62,17 +63,34 @@ const QUESTION_DOC_ID = process.env.QUESTION_DOC_ID;
 const test = {};
 exports.test = test;
 
+var questionDataCache = null;
+
+// Gets question data either from a cache or from Google Docs.
+function getQuestionData(auth) {
+  questionDataCache = questionDataCache || get(QUESTION_DOC_ID, auth, 'Questions!A2:G500');
+  return questionDataCache;
+}
+
+// Clears the cache.
+exports.clearCache = function() {
+  questionDataCache = null;
+}
+
 // Takes a list (index) of questions from a Google Sheet, extracts
 // approprivate ones and columns that might contain answers.
 const processListOfQuestions
   = test.processListOfQuestions
   = list => 
     list.filter(question => question[0] === 'TRUE')
-      .map(question => question.slice(1,4));
+      .map(question => ({
+        questionId: question[1],
+        difficulty: question[2],
+        tags: question[3],
+      }));
 
 // Gets the list of question via Google API and transforms it for the client.
 exports.getListOfQuestions = (auth) =>
-  get(QUESTION_DOC_ID, auth, 'Questions!A2:D200')
+  getQuestionData(auth)
     .then(processListOfQuestions);
 
 // Finds a user by token in the list of users received from a Google Sheet,
@@ -152,19 +170,23 @@ exports.saveResponse = async (auth, user, params) => {
   const updateOutputDoc = update(OUTPUT_DOC_ID, auth);
   const appendToOutputDoc = append(OUTPUT_DOC_ID, auth);
   const question = findQuestion(
-    await get(QUESTION_DOC_ID, auth, 'Questions!A2:E200'),
+    await getQuestionData(auth),
     params.questionID
   );
-  const isCorrect = params.response === question.correctResponse;
-  await updateOutputDoc(
+  const isCorrect = 'ABCD'[params.response] === question.correctResponse;
+
+  // We'll let the function return before those promises are resolved.
+  updateOutputDoc(
     getResultsCellRange(user.row, questionPosition),
     [[
       params.questionID,
       question.difficulty,
       isCorrect? question.difficulty : 0,
     ]]
-  );
-  await appendToOutputDoc(
+  )
+  .catch(e => console.error(e));
+
+  appendToOutputDoc(
     'Log!A1:H1',
     [[
       'time now', // Timestamp
@@ -177,8 +199,32 @@ exports.saveResponse = async (auth, user, params) => {
       params.response, // Response
       /* Todo */ // Rebuttal
     ]]
-  );
+  )
+  .catch(e => console.error(e));
+
   return { 
     isCorrect,
   };
 };
+
+// Finds the full question (including the body and the options) in the
+// index of questions received from the Google sheet API.
+
+const findFullQuestion = test.findFullQuestion = (rows, questionId) => {
+  findIndex.shim();
+  const index = rows.findIndex(x => x[1] === questionId);
+  if (index < 0) {
+    throw new Error('Invalid question');
+  }
+  console.log('Index: ', index);
+  const questionBody = rows[index][6];
+  const options = [1,2,3,4].map(offset => rows[index + offset][6]);
+  return {
+    questionId, questionBody, options
+  };
+}
+
+// Gets the description and the options for a question by questionID.
+exports.getQuestion = (auth, questionId) =>
+  getQuestionData(auth)
+    .then(rows => findFullQuestion(rows, questionId));

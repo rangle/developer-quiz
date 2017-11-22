@@ -1,17 +1,27 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import { Provider } from 'react-redux';
+import { createStore, applyMiddleware } from 'redux';
+import thunk from 'redux-thunk';
+import logger from 'redux-logger';
+
 import './index.css';
 import App from './App';
-import { createStore } from 'redux';
-import quizApp from './reducers'
+import quizApp from './reducers';
+import { initialize } from './actions';
 import registerServiceWorker from './registerServiceWorker';
 
-const store = createStore(quizApp)
+const store = createStore(
+  quizApp,
+  applyMiddleware(thunk),
+  applyMiddleware(logger),
+);
+
+store.dispatch(initialize());
 
 ReactDOM.render(
   <Provider store={ store }>
-    <App />
+    <App/>
   </Provider>,
   document.getElementById('root')
 );

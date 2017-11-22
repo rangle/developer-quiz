@@ -1,30 +1,73 @@
-import React, { Component } from 'react';
+import React from 'react';
 import { connect } from 'react-redux';
 import './App.css';
 import Question from './Question';
-import { submitAnswer } from './actions';
+import { initialize, submitAnswer } from './actions';
 
-const App = ({questionCount, submitAnswer}) => (
+
+function predicateSwitch(conditions) {
+  const index = conditions.findIndex(condition => condition.condition);
+  return conditions[index].content();
+}
+
+const App = ({questionCount, currentQuestion, isGameOver, isTokenInvalid, submitAnswer, initialize}) => (
   <div className="App">
-    <div className="App-header">
-      <h2>{ questionCount }</h2>
-    </div>
-    <p className="App-intro">
-      <Question text="Hello" options={[1,2,3]}/>
-    </p>
-    <button onClick={ x => submitAnswer() }>Next</button>
+
+    { predicateSwitch([{
+        condition: isGameOver,
+        content: () => (
+          <div>
+            GAME OVER
+          </div>
+        )
+      }, {
+        condition: isTokenInvalid,
+        content: () => (
+          <div>
+            INVALID TOKEN
+          </div>
+        )
+      }, {
+        condition: currentQuestion,
+        content: () => (
+          <div>
+            <div className="App-header">
+              <h2>{ questionCount }</h2>
+            </div>
+            <div className="App-intro">
+              <Question
+                text={ currentQuestion.questionBody }
+                options={ currentQuestion.options }
+                chooseAnswer={ submitAnswer } />
+            </div>
+          </div>
+        )
+      }, {
+        condition: true,
+        content: () => (
+          <div>
+            loading questions...
+          </div>
+        )
+      }])
+    }
   </div>
 );
 
 function mapStateToProps(state) {
   return {
-    questionCount: state.questionCount
+    currentQuestion: state.currentQuestion,
+    questionCount: state.questionCount,
+    questionsLoaded: state.availableQuestions.length,
+    isGameOver: state.isGameOver,
+    isTokenInvalid: state.isTokenInvalid,
   };
 }
 
 function mapDispatchToProps(dispatch) {
   return {
-    submitAnswer: () => dispatch(submitAnswer()),
+    submitAnswer: (x) => dispatch(submitAnswer(x)),
+    initialize: () => dispatch(initialize()),
   };
 }
 

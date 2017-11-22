@@ -18,12 +18,7 @@ describe('processListOfQuestions', function() {
   it('should filter our inactive questions and remove the flag', function () {
     const processedList = processListOfQuestions(questions);
     expect(processedList.length).to.equal(2);
-    expect(processedList[0][0]).to.equal(1);
-  });
-
-  it('should filter extra columns', function () {
-    const processedList = processListOfQuestions(questions);
-    expect(processedList[1].length).to.equal(3);
+    expect(processedList[0].questionId).to.equal(1);
   });
 });
 
