@@ -3,13 +3,11 @@ import marked from 'marked';
 import Option from './Option';
 
 const questionStyle = {
-  width: '400px',
-  margin: '10px auto',
+  width: '600px',
 }
 
 const questionTextStyle = {
-  textAlign: 'left',
-  margin: '10px',
+
 };
 
 const Question = ({text, options, chooseAnswer}) => (
