@@ -98,14 +98,12 @@ describe('findQuestion', function() {
       questionId: 1,
       difficulty: 4,
       tags: 'http',
-      correctResponse: 2
     });
     expect(findQuestion(questions, 2)).to.deep.equal({
       active: 'TRUE',
       questionId: 2,
       difficulty: 3,
       tags: 'redux',
-      correctResponse: 1
     });
   });
   it('should throw an error when the question is not found', function() {

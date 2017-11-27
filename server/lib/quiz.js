@@ -159,7 +159,7 @@ const findQuestion = test.findQuestion = (questions, questionID) => {
   }
   const [active, questionId, difficulty, tags, correctResponse] = question;
   return {
-    active, questionId, difficulty, tags, correctResponse,
+    active, questionId, difficulty, tags,
   };
 }
 
