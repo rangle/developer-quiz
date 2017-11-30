@@ -1,7 +1,8 @@
 const koa = require('koa2');
 const app = new koa();
-var router = require('koa-router')();
-var cors = require('koa-cors');
+const router = require('koa-router')();
+const cors = require('koa-cors');
+const static = require('koa-static');
 const {authorize} = require('./lib/googleauth');
 const quiz = require('./lib/quiz');
 
@@ -9,6 +10,7 @@ const quiz = require('./lib/quiz');
 // problem.
 
 app.use(cors());
+app.use(static('client/build'));
 
 authorize()
   .catch((err) => {
@@ -46,13 +48,13 @@ const checkUser = async function(ctx, next) {
 
 // Retrieves the list of questions. This will be the first request that the
 // client application makes to the server.
-router.get('/:userId/questions', checkUser, async function (ctx, next) {
+router.get('/api/:userId/questions', checkUser, async function (ctx, next) {
   const questions = await quiz.getListOfQuestions(ctx.quiz.googleauth);
   ctx.body = JSON.stringify({questions: questions, name: ctx.quiz.user.name}, null, 2);
 });
 
 // Retrieves a specific question.
-router.get('/:userId/questions/:id', checkUser, async function (ctx, next) {
+router.get('/api/:userId/questions/:id', checkUser, async function (ctx, next) {
   const question = await quiz.getQuestion(ctx.quiz.googleauth, ctx.params.id);
   ctx.body = JSON.stringify({question: question}, null, 2);
 });
@@ -62,7 +64,7 @@ router.get('/:userId/questions/:id', checkUser, async function (ctx, next) {
 // request.
 //
 // We are using GET for now to simplify testing.
-router.get('/:userId/reply/:questionID/:response/:questionPosition', checkUser, async function (ctx, next) {
+router.get('/api/:userId/reply/:questionID/:response/:questionPosition', checkUser, async function (ctx, next) {
   const response = await quiz.saveResponse(ctx.quiz.googleauth, ctx.quiz.user, {
     questionID: ctx.params.questionID,
     response: ctx.params.response,
@@ -72,9 +74,9 @@ router.get('/:userId/reply/:questionID/:response/:questionPosition', checkUser, 
 });
 
 // Clear the cache.
-router.get('/clear', function (ctx, next) {
+router.get('/api/clear', function (ctx, next) {
   quiz.clearCache();
   ctx.body = 'Ok';
 });
 
-app.listen(3000);
+app.listen(process.env.PORT || 3000);

@@ -15,16 +15,16 @@ const GAME_OVER = 'GAME_OVER';
 
 // Initializes the app.
 const initialize = () => dispatch => {
-  const token = window.location.pathname.slice(1);
+  const token = window.location.hash.slice(1);
   if (token.length > 0) {
     dispatch(setToken(token));
     getListOfQuestions(token)
       .then(questionsAndName => {
-        dispatch(setAvailableQuestions(questionsAndName.questions));
-        dispatch(pickNextQuestion());
+        dispatch(setAvailableQuestions(questionsAndName));
+        //dispatch(pickNextQuestion());
       })
       .catch(error => {
-        console.error('ERROR GETTING QUESTION LIST.');
+        console.error('ERROR GETTING QUESTION LIST:', error);
         dispatch(invalidToken());
       });
   }
@@ -39,25 +39,25 @@ const setToken = createAction(SET_TOKEN,
 const invalidToken = createAction(INVALID_TOKEN);
 
 // Adds the bank of questions when they have arrived from the server.
-const setAvailableQuestions = createAction(
-  SET_AVAILABLE_QUESTIONS,
-  value => ({
-    questions: value
-  })
-);
+const setAvailableQuestions = createAction(SET_AVAILABLE_QUESTIONS);
 
 // Picks a new question from among the ones that are available.
 const pickNextQuestion = () => {
   return (dispatch, getState) => {
     const state = getState();
-    const question = state.availableQuestions[state.questionCount];
-    // Right now we just pick the next question in the list of questions.
-    // TODO: Factor in state.resultsSoFar
-    if (question) {
+    const difficulty = state.difficulty;
+    const usedQuestions = state.usedQuestions;
+    const appropriateQuestions = state.availableQuestions.filter(
+      question => (parseInt(question.difficulty, 10) === difficulty)
+        && !usedQuestions[question.questionId]
+    );
+    const questionIndex = Math.floor(Math.random() * appropriateQuestions.length);
+    const question = appropriateQuestions[questionIndex];
+    if (question && state.questionCount < 10) {
+      // console.log(`Question ${question.questionId}, difficulty = ${question.difficulty}.`);
       dispatch(setNextQuestion(question));
       getActualQuestion(state.token, question.questionId)
         .then(actualQuestion => {
-          console.log('ACTUAL QUESTION', actualQuestion.question);
           dispatch(showNewQuestion(actualQuestion.question));
         });
     } else {
@@ -74,13 +74,11 @@ const showNewQuestion = createAction(SHOW_NEW_QUESTION);
 
 // Submits the response to the question.
 const submitAnswer = optionId => (dispatch, getState) => {
-  console.log('Submitted answer:', optionId);
   const state = getState();
   postAnswer(state.token, state.currentQuestion.questionId, optionId, state.questionCount)
     .then(function(response) {
-      console.log('RESPONSE', response);
-      dispatch(logResult({correct: response.isCorrect, ...state.currentQuestion}));
-      dispatch(pickNextQuestion())
+      dispatch(logResult({isCorrect: response.isCorrect, ...state.currentQuestion}));
+      dispatch(pickNextQuestion());
     });
 };
 

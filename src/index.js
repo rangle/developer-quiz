@@ -11,10 +11,14 @@ import quizApp from './reducers';
 import { initialize } from './actions';
 import registerServiceWorker from './registerServiceWorker';
 
+const DEBUG = process.env.NODE_ENV !== 'production';
+
 const store = createStore(
   quizApp,
-  applyMiddleware(thunk),
-  applyMiddleware(logger),
+  applyMiddleware(...[
+    thunk,
+    DEBUG ? logger : null
+  ].filter(x => x))
 );
 
 store.dispatch(initialize());
@@ -26,3 +30,5 @@ ReactDOM.render(
   document.getElementById('root')
 );
 registerServiceWorker();
+
+window.onbeforeunload = function() { return "Your work will be lost."; };

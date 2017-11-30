@@ -8,6 +8,7 @@ const optionStyle = {
   margin: '10px',
   cursor: 'pointer',
   textAligh: 'left',
+  fontSize: '10pt',
   backgroundColor: 'lightGray',
 };
 

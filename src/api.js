@@ -1,6 +1,8 @@
 const USE_MOCKS = false;
 const MOCK_DELAY = 50;
-const SERVER_URL_BASE = 'http://localhost:3000/';
+const SERVER_URL_BASE = process.env.NODE_ENV === 'production' ?
+  '/api/'
+  : 'http://localhost:3000/api/';
 
 // Mock data to use when mocking server responses locally.
 const MOCK_DATA = {
